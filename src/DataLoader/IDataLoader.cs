@@ -11,6 +11,6 @@ namespace DataLoader
     public interface IDataLoader
     {
         DataLoaderStatus Status { get; }
-        Task ExecuteAsync();
+        void Execute();
     }
 }

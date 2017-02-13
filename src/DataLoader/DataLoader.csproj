@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>netstandard1.3;net46;net45</TargetFrameworks>
+    <TargetFrameworks>netstandard1.1;net45</TargetFrameworks>
     <PackageId>DataLoader</PackageId>
     <Description>A port of Facebook's DataLoader for .NET</Description>
     <Authors>Daniel Zimmermann</Authors>

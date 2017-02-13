@@ -53,11 +53,6 @@ namespace DataLoader
         internal DataLoaderContext Context => _loadCtx;
 
         /// <summary>
-        /// Represents the scope's completion.
-        /// </summary>
-        public Task Completion => _loadCtx.Completion;
-
-        /// <summary>
         /// Marks the end of this scope and the point at which pending loaders will be fired.
         /// </summary>
         public void Dispose()

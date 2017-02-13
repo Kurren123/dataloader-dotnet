@@ -1,5 +1,4 @@
 ﻿using System.Linq;
-using System.Threading.Tasks;
 using GraphQL.Types;
 using Microsoft.EntityFrameworkCore;
 
@@ -16,23 +15,23 @@ namespace DataLoader.GraphQL.StarWars.Schema
 
             Field<ListGraphType<CharacterInterface>>()
                 .Name("characters")
-                .Resolve(ctx => ctx.GetDataLoader(async ids =>
+                .Resolve(ctx => ctx.GetDataLoader(ids =>
                     {
                         var db = ctx.GetDataContext();
 
                         var humans = db.HumanAppearances
                             .Where(ha => ids.Contains(ha.EpisodeId))
                             .Select(ha => new HumanAppearance { EpisodeId = ha.EpisodeId, Human = ha.Human })
-                            .ToListAsync<ICharacterAppearance>();
+                            .ToList<ICharacterAppearance>();
 
                         var droids = db.DroidAppearances
                             .Where(da => ids.Contains(da.EpisodeId))
                             .Select(da => new DroidAppearance { EpisodeId = da.EpisodeId, Droid = da.Droid })
-                            .ToListAsync<ICharacterAppearance>();
+                            .ToList<ICharacterAppearance>();
 
-                        await Task.WhenAll(humans, droids);
+                        var lookup = humans.Concat(droids).ToLookup(a => a.EpisodeId, a => a.Character);
 
-                        return humans.Result.Concat(droids.Result).ToLookup(a => a.EpisodeId, a => a.Character);
+                        return lookup;
                     }).LoadAsync(ctx.Source.EpisodeId));
         }
     }

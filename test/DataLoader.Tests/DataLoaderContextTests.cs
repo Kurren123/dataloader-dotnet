@@ -100,9 +100,8 @@ namespace DataLoader.Tests
         {
             var loadCount = 0;
 
-            var loader = new DataLoader<int, int>(async ids =>
+            var loader = new DataLoader<int, int>(ids =>
             {
-                await Task.Delay(150);
                 loadCount++;
                 return ids.ToLookup(id => id);
             });
