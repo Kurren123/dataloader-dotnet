@@ -16,24 +16,21 @@ namespace DataLoader.GraphQL.StarWars.Schema
 
             Field<ListGraphType<CharacterInterface>>()
                 .Name("characters")
-                .Resolve(ctx => ctx.GetDataLoader(async ids =>
-                    {
-                        var db = ctx.GetDataContext();
+                .Resolve(ctx => ctx.GetDataLoader(async (db, ids) => {
+                    var humans = db.HumanAppearances
+                        .Where(ha => ids.Contains(ha.EpisodeId))
+                        .Select(ha => new HumanAppearance { EpisodeId = ha.EpisodeId, Human = ha.Human })
+                        .ToListAsync<ICharacterAppearance>();
 
-                        var humans = db.HumanAppearances
-                            .Where(ha => ids.Contains(ha.EpisodeId))
-                            .Select(ha => new HumanAppearance { EpisodeId = ha.EpisodeId, Human = ha.Human })
-                            .ToListAsync<ICharacterAppearance>();
+                    var droids = db.DroidAppearances
+                        .Where(da => ids.Contains(da.EpisodeId))
+                        .Select(da => new DroidAppearance { EpisodeId = da.EpisodeId, Droid = da.Droid })
+                        .ToListAsync<ICharacterAppearance>();
 
-                        var droids = db.DroidAppearances
-                            .Where(da => ids.Contains(da.EpisodeId))
-                            .Select(da => new DroidAppearance { EpisodeId = da.EpisodeId, Droid = da.Droid })
-                            .ToListAsync<ICharacterAppearance>();
+                    await Task.WhenAll(humans, droids);
 
-                        await Task.WhenAll(humans, droids);
-
-                        return humans.Result.Concat(droids.Result).ToLookup(a => a.EpisodeId, a => a.Character);
-                    }).LoadAsync(ctx.Source.EpisodeId));
+                    return humans.Result.Concat(droids.Result).ToLookup(a => a.EpisodeId, a => a.Character);
+                }).LoadAsync(ctx.Source.EpisodeId));
         }
     }
 

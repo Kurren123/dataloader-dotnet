@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using DataLoader.GraphQL.StarWars.Schema;
 using GraphQL;
+using GraphQL.Types;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DataLoader.GraphQL.StarWars.Controllers
@@ -22,11 +23,23 @@ namespace DataLoader.GraphQL.StarWars.Controllers
             Console.WriteLine($"Thread {Thread.CurrentThread.ManagedThreadId.ToString().PadLeft(2, ' ')} - Running query {queryNumber}...");
             var sw = Stopwatch.StartNew();
 
-            var result = await DataLoaderContext.Run(ctx => _executer.ExecuteAsync(_ =>
+            var result = await DataLoaderContext.Run(loadCtx => _executer.ExecuteAsync(_ =>
             {
+                var context = new GraphQLUserContext(loadCtx);
                 _.Schema = _schema;
                 _.Query = request.Query;
-                _.UserContext = new GraphQLUserContext(ctx);
+                _.UserContext = context;
+                _.FieldMiddleware.Use(next => {
+                    FieldType lastField = null;
+                    return ctx =>
+                    {
+                        var thisField = ctx.FieldDefinition;
+                        if (lastField == null) lastField = thisField;
+                        if (lastField != thisField) context.LoadContext.Complete();
+                        lastField = ctx.FieldDefinition;
+                        return next(ctx);
+                    };
+                });
             }));
 
             Console.WriteLine($"Thread {Thread.CurrentThread.ManagedThreadId.ToString().PadLeft(2, ' ')} - Finished query {queryNumber} ({sw.ElapsedMilliseconds}ms)");

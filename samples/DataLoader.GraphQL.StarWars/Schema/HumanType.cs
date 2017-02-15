@@ -23,27 +23,27 @@ namespace DataLoader.GraphQL.StarWars.Schema
 
             Field<ListGraphType<CharacterInterface>>()
                 .Name("friends")
-                .Resolve(ctx => ctx.GetDataLoader(async ids =>
-                    {
-                        var db = ctx.GetDataContext();
-                        return (await db.Friendships
+                .Resolve(ctx => ctx.GetDataLoader(async (db, ids) =>
+                {
+                    return (
+                        await db.Friendships
                             .Where(f => ids.Contains(f.HumanId))
                             .Select(f => new {Key = f.HumanId, f.Droid})
-                            .ToListAsync())
-                            .ToLookup(x => x.Key, x => x.Droid);
-                    }).LoadAsync(ctx.Source.HumanId));
+                            .ToListAsync()
+                        ).ToLookup(x => x.Key, x => x.Droid);
+                }).LoadAsync(ctx.Source.HumanId));
 
             Field<ListGraphType<EpisodeType>>()
                 .Name("appearsIn")
-                .Resolve(ctx => ctx.GetDataLoader(async ids =>
-                    {
-                        var db = ctx.GetDataContext();
-                        return (await db.HumanAppearances
+                .Resolve(ctx => ctx.GetDataLoader(async (db, ids) =>
+                {
+                    return (
+                        await db.HumanAppearances
                             .Where(ha => ids.Contains(ha.HumanId))
                             .Select(ha => new { Key = ha.HumanId, ha.Episode })
-                            .ToListAsync())
-                            .ToLookup(x => x.Key, x => x.Episode);
-                    }).LoadAsync(ctx.Source.HumanId));
+                            .ToListAsync()
+                        ).ToLookup(x => x.Key, x => x.Episode);
+                }).LoadAsync(ctx.Source.HumanId));
         }
     }
 }
