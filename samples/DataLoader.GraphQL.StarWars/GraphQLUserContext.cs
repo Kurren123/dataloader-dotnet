@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using GraphQL.Types;
 
@@ -24,19 +25,29 @@ namespace DataLoader.GraphQL.StarWars
 
     public static class GraphQLUserContextExtensions
     {
-        public static GraphQLUserContext GetUserContext<T>(this ResolveFieldContext<T> context)
-        {
-            return (GraphQLUserContext)context.UserContext;
-        }
-
         public static StarWarsContext GetDataContext<T>(this ResolveFieldContext<T> context)
         {
-            return context.GetUserContext().DataContext;
+            return ((GraphQLUserContext)context.UserContext).DataContext;
         }
 
-        public static IDataLoader<int, TReturn> GetDataLoader<TSource, TReturn>(this ResolveFieldContext<TSource> context, Func<IEnumerable<int>, Task<ILookup<int, TReturn>>> fetchDelegate)
+        // public static IDataLoader<int, TReturn> GetDependentLoader<TDataLoader, TSource, TReturn>(
+        //     this ResolveFieldContext<TSource> context, Func<IEnumerable<int>, ILookup<int, TReturn>> fetch)
+        // {
+        //     return ((GraphQLUserContext)context.UserContext).LoadContext.GetDependentLoader(context.FieldDefinition, fetch);
+        // }
+
+        public static AsyncLocal<KeyValuePair<FieldType, IDataLoader>> KeysFromField = new AsyncLocal<KeyValuePair<FieldType, IDataLoader>>();
+
+        public static IDataLoader<int, TReturn> GetDataLoader<TSource, TReturn>(this ResolveFieldContext<TSource> context, Func<IEnumerable<int>, Task<ILookup<int, TReturn>>> fetch)
         {
-            return context.GetUserContext().LoadContext.GetLoader(context.FieldDefinition, fetchDelegate);
+            var loader = ((GraphQLUserContext)context.UserContext).LoadContext.GetLoader(context.FieldDefinition, fetch);
+            if (context.ParentType == KeysFromField.Value.Key)
+            {
+                var last = KeysFromField.Value.Value;
+                last.GetResult().SelectMany(x => x);
+                KeysFromField.Value = context.FieldDefinition;
+            }
+            return loader;
         }
     }
 }

@@ -24,7 +24,7 @@ namespace DataLoader
     public sealed class DataLoaderContext
     {
         private readonly Queue<IDataLoader> _queue = new Queue<IDataLoader>();
-        private readonly ConcurrentDictionary<object, IDataLoader> _cache = new ConcurrentDictionary<object, IDataLoader>();
+        public ConcurrentDictionary<object, IDataLoader> Cache { get; } = new ConcurrentDictionary<object, IDataLoader>();
         private TaskCompletionSource<object> _completionSource = new TaskCompletionSource<object>();
         private bool _isCompleting;
 
@@ -35,10 +35,17 @@ namespace DataLoader
         /// <summary>
         /// Retrieves a cached loader for the given key, creating one if none is found.
         /// </summary>
-        public IDataLoader<TKey, TReturn> GetLoader<TKey, TReturn>(object key, Func<IEnumerable<TKey>, Task<ILookup<TKey, TReturn>>> fetcher)
+        // public IDataLoader<TKey, TReturn> GetLoader<TKey, TReturn>(object key, Func<IEnumerable<TKey>, Task<ILookup<TKey, TReturn>>> fetcher)
+        // {
+            // return (IDataLoader<TKey, TReturn>)Cache.GetOrAdd(key, _ => new DataLoader<TKey, TReturn>(fetcher, this));
+        // }
+
+        /// <summary>
+        /// Retrieves a cached loader for the given key, creating one if none is found.
+        /// </summary>
+        public CachedDataLoader<TKey, TReturn> GetLoader<TKey, TReturn>(object key, Func<IEnumerable<TKey>, Task<ILookup<TKey, TReturn>>> fetcher)
         {
-            return (IDataLoader<TKey, TReturn>)_cache.GetOrAdd(key, _ =>
-               new DataLoader<TKey, TReturn>(fetcher, this));
+            return (CachedDataLoader<TKey, TReturn>)Cache.GetOrAdd(key, _ => new CachedDataLoader<TKey, TReturn>(fetcher));
         }
 
         /// <summary>
