@@ -3,8 +3,11 @@ using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using DataLoader.GraphQL.StarWars.Schema;
+using DataLoader.GraphQL.StarWars.Infrastructure;
 using GraphQL;
+using GraphQL.Instrumentation;
 using Microsoft.AspNetCore.Mvc;
+using System.Linq;
 
 namespace DataLoader.GraphQL.StarWars.Controllers
 {
@@ -19,18 +22,23 @@ namespace DataLoader.GraphQL.StarWars.Controllers
         public async Task<ExecutionResult> Post([FromBody] GraphQLRequest request)
         {
             var queryNumber = Interlocked.Increment(ref _queryNumber);
-            Console.WriteLine($"Thread {Thread.CurrentThread.ManagedThreadId.ToString().PadLeft(2, ' ')} - Running query {queryNumber}...");
+            Console.WriteLine($"Thread {Thread.CurrentThread.ManagedThreadId.ToString().PadLeft(2, ' ')} - Running query {queryNumber}");
             var sw = Stopwatch.StartNew();
 
-            var result = await DataLoaderContext.Run(ctx => _executer.ExecuteAsync(_ =>
+            var result = await _executer.ExecuteAsync(_ =>
             {
                 _.Schema = _schema;
                 _.Query = request.Query;
-                _.UserContext = new GraphQLUserContext(ctx);
-            }));
+                _.UserContext = new GraphContext();
+                _.FieldMiddleware
+                    .Use<GraphNodeMiddleware>()
+                    .ApplyTo(_schema);
+                    
+                GraphNodeCollectionBootstrapper.Bootstrap(_schema);
+            });
 
-            Console.WriteLine($"Thread {Thread.CurrentThread.ManagedThreadId.ToString().PadLeft(2, ' ')} - Finished query {queryNumber} ({sw.ElapsedMilliseconds}ms)");
             sw.Stop();
+            Console.WriteLine($"Thread {Thread.CurrentThread.ManagedThreadId.ToString().PadLeft(2, ' ')} - Finished query {queryNumber} ({sw.ElapsedMilliseconds}ms)");
 
             return result;
         }

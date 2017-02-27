@@ -1,3 +1,7 @@
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using DataLoader.GraphQL.StarWars.Infrastructure;
 using GraphQL.Types;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,15 +15,18 @@ namespace DataLoader.GraphQL.StarWars.Schema
 
             Field<ListGraphType<HumanType>>()
                 .Name("humans")
-                .Resolve(ctx => ctx.GetDataContext().Humans.ToListAsync());
+                .Returns<Task<object>>()
+                .Resolve(async ctx => new GraphNodeCollection<Human>(await ctx.GetDataContext().Humans.ToListAsync()));
 
             Field<ListGraphType<DroidType>>()
                 .Name("droids")
-                .Resolve(ctx => ctx.GetDataContext().Droids.ToListAsync());
+                .Returns<Task<object>>()
+                .Resolve(async ctx => new GraphNodeCollection<Droid>(await ctx.GetDataContext().Droids.ToListAsync()));
 
             Field<ListGraphType<EpisodeType>>()
                 .Name("episodes")
-                .Resolve(ctx => ctx.GetDataContext().Episodes.ToListAsync());
+                .Returns<Task<object>>()
+                .Resolve(async ctx => new GraphNodeCollection<Episode>(await ctx.GetDataContext().Episodes.ToListAsync()));
         }
     }
 }

@@ -2,7 +2,7 @@ using GraphQL.Types;
 
 namespace DataLoader.GraphQL.StarWars.Schema
 {
-    public class CharacterInterface : InterfaceGraphType
+    public class CharacterInterface : InterfaceGraphType<ICharacter>
     {
         public CharacterInterface()
         {

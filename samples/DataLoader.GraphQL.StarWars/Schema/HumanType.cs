@@ -6,6 +6,7 @@
  */
 
 using System.Linq;
+using DataLoader.GraphQL.StarWars.Infrastructure;
 using GraphQL.Types;
 using Microsoft.EntityFrameworkCore;
 
@@ -19,31 +20,36 @@ namespace DataLoader.GraphQL.StarWars.Schema
             Field(h => h.Name);
             Field(h => h.HumanId);
             Field(h => h.HomePlanet);
-            Interface<CharacterInterface>();
 
             Field<ListGraphType<CharacterInterface>>()
                 .Name("friends")
-                .Resolve(ctx => ctx.GetDataLoader(async ids =>
-                    {
-                        var db = ctx.GetDataContext();
-                        return (await db.Friendships
-                            .Where(f => ids.Contains(f.HumanId))
-                            .Select(f => new {Key = f.HumanId, f.Droid})
-                            .ToListAsync())
-                            .ToLookup(x => x.Key, x => x.Droid);
-                    }).LoadAsync(ctx.Source.HumanId));
+                .Defer(h => h.HumanId)
+                .Resolve(async ctx =>
+                {
+                    var ids = ctx.Source;
+                    var db = ctx.GetDataContext();
+                    return (await db.Friendships
+                        .Where(f => ids.Contains(f.HumanId))
+                        .Select(f => new {Key = f.HumanId, f.Droid})
+                        .ToListAsync())
+                        .ToLookup(x => x.Key, x => x.Droid);
+                });
 
             Field<ListGraphType<EpisodeType>>()
                 .Name("appearsIn")
-                .Resolve(ctx => ctx.GetDataLoader(async ids =>
-                    {
-                        var db = ctx.GetDataContext();
-                        return (await db.HumanAppearances
-                            .Where(ha => ids.Contains(ha.HumanId))
-                            .Select(ha => new { Key = ha.HumanId, ha.Episode })
-                            .ToListAsync())
-                            .ToLookup(x => x.Key, x => x.Episode);
-                    }).LoadAsync(ctx.Source.HumanId));
+                .Defer(h => h.HumanId)
+                .Resolve(async ctx =>
+                {
+                    var ids = ctx.Source;
+                    var db = ctx.GetDataContext();
+                    return (await db.HumanAppearances
+                        .Where(ha => ids.Contains(ha.HumanId))
+                        .Select(ha => new { Key = ha.HumanId, ha.Episode })
+                        .ToListAsync())
+                        .ToLookup(x => x.Key, x => x.Episode);
+                });
+
+            Interface<CharacterInterface>();
         }
     }
 }

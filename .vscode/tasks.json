@@ -16,15 +16,6 @@
             "problemMatcher": "$msCompile"
         },
         {
-            "taskName": "setup",
-            "suppressTaskName": true,
-            "args": [
-                "ef",
-                "database",
-                "update"
-            ]
-        },
-        {
             "taskName": "test",
             "args": [
                 "test/DataLoader.Tests/DataLoader.Tests.csproj"

@@ -1,6 +1,8 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace DataLoader
@@ -18,13 +20,14 @@ namespace DataLoader
     /// <item>The loader was invoked explicitly by calling <see cref="ExecuteAsync"/>.</item>
     /// </list>
     /// </remarks>
-    public class DataLoader<TKey, TReturn> : IDataLoader<TKey, TReturn>
+    public class DataLoader<TKey, TReturn> : IDataLoader
     {
         private readonly object _lock = new object();
         private readonly Func<IEnumerable<TKey>, Task<ILookup<TKey, TReturn>>> _fetch;
         private Queue<FetchCompletionPair> _queue = new Queue<FetchCompletionPair>();
         private DataLoaderContext _boundContext;
         private bool _isExecuting;
+        public IEnumerable GetValues() => null;
 
         /// <summary>
         /// Creates a new <see cref="DataLoader{TKey,TReturn}"/>.
@@ -139,13 +142,26 @@ namespace DataLoader
                 var lookup = await _fetch(GetKeys(queue)).ConfigureAwait(false);
                 while (queue.Count > 0)
                 {
+                    Console.WriteLine($"Thread {Thread.CurrentThread.ManagedThreadId} - Context: Dequeuing item ({queue.Count} remaining)");
                     var item = queue.Dequeue();
+                    Console.WriteLine($"Thread {Thread.CurrentThread.ManagedThreadId} - Context: Setting result for {item.Key}");
                     item.CompletionSource.SetResult(lookup[item.Key]);
                     var completion = (IAsyncResult)item.CompletionSource.Task;
-                    if (!completion.CompletedSynchronously) completion.AsyncWaitHandle.WaitOne();
+                    if (!completion.CompletedSynchronously)
+                    {
+                        Console.WriteLine($"Thread {Thread.CurrentThread.ManagedThreadId} - Context: Waiting for {item.Key}");
+                        completion.AsyncWaitHandle.WaitOne();
+                        Console.WriteLine($"Thread {Thread.CurrentThread.ManagedThreadId} - Context: Finished wait for {item.Key}");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"Thread {Thread.CurrentThread.ManagedThreadId} - Context: Result set synchronously for {item.Key}");
+                    }
                 }
             }
             finally { _isExecuting = false; }
+
+            Console.WriteLine($"Thread {Thread.CurrentThread.ManagedThreadId} - Context: Finished executing");
         }
 
         private static IEnumerable<TKey> GetKeys(IEnumerable<FetchCompletionPair> pairs)
