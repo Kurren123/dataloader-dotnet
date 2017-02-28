@@ -29,9 +29,9 @@ namespace DataLoader.GraphQL.StarWars.Schema
                     var ids = ctx.Source;
                     var db = ctx.GetDataContext();
                     return (await db.Friendships
-                        .Where(f => ids.Contains(f.HumanId))
-                        .Select(f => new {Key = f.HumanId, f.Droid})
-                        .ToListAsync())
+                            .Where(f => ids.Contains(f.HumanId))
+                            .Select(f => new {Key = f.HumanId, f.Droid})
+                            .ToListAsync())
                         .ToLookup(x => x.Key, x => x.Droid);
                 });
 
@@ -43,9 +43,9 @@ namespace DataLoader.GraphQL.StarWars.Schema
                     var ids = ctx.Source;
                     var db = ctx.GetDataContext();
                     return (await db.HumanAppearances
-                        .Where(ha => ids.Contains(ha.HumanId))
-                        .Select(ha => new { Key = ha.HumanId, ha.Episode })
-                        .ToListAsync())
+                            .Where(ha => ids.Contains(ha.HumanId))
+                            .Select(ha => new { Key = ha.HumanId, ha.Episode })
+                            .ToListAsync())
                         .ToLookup(x => x.Key, x => x.Episode);
                 });
 
